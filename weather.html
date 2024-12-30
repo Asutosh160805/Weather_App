@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Weather Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Pacifico&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    /* Background color animation with smooth horizontal (left to right) color transition */
+    @keyframes backgroundTransition {
+      0% {
+        background: linear-gradient(90deg, #ff9a8b, #ff6a88, #d3a5ea); /* Light pink, soft peach, lavender */
+      }
+      25% {
+        background: linear-gradient(90deg, #fcb69f, #ff4e50, #d7d2cc); /* Soft peach, coral, beige */
+      }
+      50% {
+        background: linear-gradient(90deg, #ffbc42, #ff5e62, #d7a0d5); /* Sunlight yellow, warm orange */
+      }
+      75% {
+        background: linear-gradient(90deg, #f6d365, #fda085, #ff6f61); /* Warm yellow to orange tones */
+      }
+      100% {
+        background: linear-gradient(90deg, #ff9a8b, #ff6a88, #d3a5ea); /* Repeat light pink, soft peach, lavender */
+      }
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      animation: backgroundTransition 60s ease infinite; /* Slow background color transition */
+    }
+
+    .app-title {
+      font-family: 'Pacifico', cursive;
+      font-size: 36px;
+      color: white;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row;
+      width: 80%;
+      justify-content: space-between;
+      transition: transform 1s ease; /* Smooth container transition */
+    }
+
+    .card {
+      width: 300px;
+      height: 400px;
+      perspective: 1000px;
+      margin-right: 20px;
+      transition: transform 0.8s ease-in-out, background-color 1s ease; /* Smooth card flip and background color change */
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.8s ease-in-out; /* Smooth inner card flip */
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+    }
+
+    .card-front {
+      background: linear-gradient(90deg, #ff9a8b, #ff6a88, #d3a5ea);
+      flex-direction: column;
+      transition: background-color 1s ease; /* Smooth background color transition */
+    }
+
+    .card-back {
+      background: linear-gradient(90deg, #fcb69f, #ff4e50, #d7d2cc);
+      transform: rotateY(180deg);
+      flex-direction: column;
+    }
+
+    h2, p {
+      margin: 0;
+      transition: opacity 0.5s ease; /* Smooth text transition */
+    }
+
+    .weather-message {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .weather-info p {
+      margin-bottom: 5px;
+    }
+
+    input, button {
+      margin-top: 10px;
+      padding: 8px;
+      border: none;
+      border-radius: 5px;
+      outline: none;
+      transition: all 0.3s ease; /* Smooth input and button transition */
+    }
+
+    input {
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    button {
+      background: #ff6b6b;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #map {
+      height: 400px;
+      width: 100%;
+    }
+
+    .sunshine {
+      background: linear-gradient(90deg, #ffbc42, #ff5e62, #f7b7a3); /* Sunny warmth */
+    }
+
+    .rainy {
+      background: linear-gradient(90deg, #4b9cd3, #2b7bb9, #1a5276); /* Rainy blue */
+    }
+
+    .cloudy {
+      background: linear-gradient(90deg, #9ca4b2, #7f8a9a, #566573); /* Cloudy greys */
+    }
+
+    .snowy {
+      background: linear-gradient(90deg, #e0e0e0, #b0b0b0, #f2f2f2); /* Snowy whites */
+    }
+
+    .city-name {
+      font-family: 'Pacifico', cursive;
+      font-size: 24px;
+      text-align: center;
+      margin-top: 20px;
+      color: #fff;
+    }
+
+    .city-heading {
+      font-family: 'Poppins', sans-serif;
+      font-size: 20px;
+      text-align: center;
+      margin-top: 20px;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-title">Weather App</div> <!-- Added Weather App title -->
+
+  <div class="container">
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-front">
+          <h2>Weather App</h2>
+          <input type="text" id="city" placeholder="Enter City" />
+          <button id="getWeather">Check</button>
+        </div>
+        <div class="card-back">
+          <div class="weather-info">
+            <p id="weatherResult">Weather info here!</p>
+            <p id="humidity"></p>
+            <p id="windSpeed"></p>
+            <img id="weatherIcon" src="" alt="" />
+            <div class="weather-message" id="weatherMessage"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <div class="city-heading" id="cityHeading">City:</div>
+  <div class="city-name" id="cityName"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const apiKey = 'YOUR API KEY'; // Replace with your OpenWeatherMap API key
+
+    const map = L.map('map').setView([20.5937, 78.9629], 5); // Set to center over India by default
+
+    // Dark theme tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    let selectedCoords = null;
+
+    map.on('click', function (e) {
+      selectedCoords = e.latlng;
+      fetchWeatherByCoords(selectedCoords.lat, selectedCoords.lng);
+    });
+
+    document.getElementById('getWeather').addEventListener('click', () => {
+      const city = document.getElementById('city').value;
+      const result = document.getElementById('weatherResult');
+
+      if (city) {
+        fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.cod === 200) {
+              updateWeatherCard(data);
+              document.querySelector('.card').classList.add('flipped'); // Trigger the flip effect
+            } else {
+              result.innerHTML = 'City not found!';
+            }
+          })
+          .catch(() => {
+            result.innerHTML = 'Error fetching data';
+          });
+      } else {
+        result.innerHTML = 'Enter a city!';
+      }
+    });
+
+    function fetchWeatherByCoords(lat, lon) {
+      const result = document.getElementById('weatherResult');
+      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.cod === 200) {
+            updateWeatherCard(data);
+            document.querySelector('.card').classList.add('flipped'); // Trigger the flip effect
+          } else {
+            result.innerHTML = 'Weather info not found!';
+          }
+        })
+        .catch(() => {
+          result.innerHTML = 'Error fetching data';
+        });
+    }
+
+    function updateWeatherCard(data) {
+      const result = document.getElementById('weatherResult');
+      const humidity = document.getElementById('humidity');
+      const windSpeed = document.getElementById('windSpeed');
+      const icon = document.getElementById('weatherIcon');
+      const weatherMessage = document.getElementById('weatherMessage');
+      const cityName = document.getElementById('cityName');
+
+      result.innerHTML = `Temperature: ${data.main.temp}&deg;C <br> ${data.weather[0].description}`;
+      humidity.innerHTML = `Humidity: ${data.main.humidity}%`;
+      windSpeed.innerHTML = `Wind Speed: ${data.wind.speed} m/s`;
+
+      // Weather icon
+      icon.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
+
+      // Weather messages and background based on condition
+      switch (data.weather[0].main) {
+        case 'Clear':
+          document.body.classList.add('sunshine');
+          weatherMessage.innerHTML = `It's a beautiful sunny day! 🌞`;
+          break;
+        case 'Rain':
+          document.body.classList.add('rainy');
+          weatherMessage.innerHTML = `It's raining! 🌧️ Stay dry!`;
+          break;
+        case 'Clouds':
+          document.body.classList.add('cloudy');
+          weatherMessage.innerHTML = `It's cloudy today. 🌥️`;
+          break;
+        case 'Snow':
+          document.body.classList.add('snowy');
+          weatherMessage.innerHTML = `Snowy day! ❄️ Time for some winter fun!`;
+          break;
+        default:
+          weatherMessage.innerHTML = `Weather info not available!`;
+          break;
+      }
+
+      // Display city name with emoji
+      cityName.innerHTML = `🌍 ${data.name}`;
+    }
+
+    document.querySelector('.card').addEventListener('click', () => {
+      // Flip the card back when clicked
+      document.querySelector('.card').classList.remove('flipped');
+      document.getElementById('city').value = ''; // Clear the city input
+      document.getElementById('weatherResult').innerHTML = 'Weather info here!';
+      document.getElementById('humidity').innerHTML = '';
+      document.getElementById('windSpeed').innerHTML = '';
+      document.getElementById('weatherIcon').src = ''; // Remove the weather icon
+      document.getElementById('weatherMessage').innerHTML = ''; // Remove weather message
+      document.body.classList.remove('sunshine', 'rainy', 'cloudy', 'snowy'); // Reset background
+      document.getElementById('cityName').innerHTML = ''; // Clear city name
+    });
+  </script>
+</body>
+</html>
