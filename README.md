@@ -27,7 +27,7 @@ To run the Weather App locally, follow these steps:
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/Asutosh160805/Weather_App.git
+  https://github.com/Asutosh160805/Weather_App
 2.Sign up for an API key on OpenWeatherMap.
 
 Add your API key in the JavaScript file:
